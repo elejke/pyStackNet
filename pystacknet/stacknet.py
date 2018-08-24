@@ -7,15 +7,14 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-DATA_HOME = "/home/novikov/Kaggle/data/mail/"
-STACKNET_HOME = "/home/novikov/Kaggle/src/stacknet/"
-
 class StackNetClassifier(BaseEstimator, ClassifierMixin):
     """
     Sklean-like wrapper on the StackNet implemented by kaz-Anova:
         https://github.com/kaz-Anova/StackNet
     """
     def __init__(self, 
+                 data_home,
+                 stacknet_home,
                  n_folds=10,
                  n_jobs=10,
                  stack_data=False,
@@ -24,13 +23,12 @@ class StackNetClassifier(BaseEstimator, ClassifierMixin):
                  verbose=True,
                  params_file='params.txt',
                  train_file="train_stacknet.csv", 
-                 test_file="test_stacknet.csv", 
-                 data_home=DATA_HOME,
-                 stacknet_home=STACKNET_HOME):
+                 test_file="test_stacknet.csv"):
         """
         Scikit-learn like wrapper on the StackNet implemented by kaz-Anova:
         https://github.com/kaz-Anova/StackNet
         """
+        super().__init__()
         self.metric = metric
         self.random_state = random_state
         self.n_jobs = n_jobs
@@ -43,8 +41,8 @@ class StackNetClassifier(BaseEstimator, ClassifierMixin):
         self.test_file = test_file
         self.params = params_file
         # Object dependent variables:
-        self._train_file = self.data_home + self.train_file
-        self._test_file = self.data_home + self.test_file
+        self._train_file = os.path.join(self.data_home, self.train_file)
+        self._test_file = os.path.join(self.data_home, self.test_file)
         self._output = None
         self._X = None
         self._y = None
@@ -77,7 +75,7 @@ class StackNetClassifier(BaseEstimator, ClassifierMixin):
         self._output = str(self._exec_stacknet())
         if self.verbose > 0:
             print(self._output)
-        y_proba = pd.read_csv(self.stacknet_home + "stacknet_pred.csv", header=None)
+        y_proba = pd.read_csv(os.path.join(self.stacknet_home, "stacknet_pred.csv"), header=None)
         
         return y_proba.values
     
@@ -131,14 +129,14 @@ class StackNetClassifier(BaseEstimator, ClassifierMixin):
         os.chdir(self.stacknet_home)
         # Commandline msg for StackNet.jar
         command = "java"
-        command += " -Xmx3048m -jar " + self.stacknet_home + "StackNet.jar" #StackNet.jar"
+        command += " -Xmx3048m -jar " + os.path.join(self.stacknet_home, "StackNet.jar")
         command += " train task=classification"
         command += " train_file=" + self._train_file #train_stacknet.csv"
         command += " test_file=" + self._test_file #test_stacknet.csv"
-        command += " model_file=" + self.stacknet_home + "stacknet.model" #stacknet.model"
+        command += " model_file=" + os.path.join(self.stacknet_home, "stacknet.model") #stacknet.model"
         command += " params=" + self.params# "params.txt"
         command += " test_target=false"
-        command += " pred_file=" + self.stacknet_home + "stacknet_pred.csv"
+        command += " pred_file=" + os.path.join(self.stacknet_home, "stacknet_pred.csv")
         command += " verbose=true"
         command += " Threads=" + str(self.n_jobs) #10"
         command += " stackdata=" + str(self.stack_data).lower() #false"
